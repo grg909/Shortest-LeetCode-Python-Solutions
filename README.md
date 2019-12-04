@@ -2497,84 +2497,90 @@ class MyCircularQueue:
 	- 使用 BFS 时，需要抓住 3 个关键点：根节点是什么？根节点的一阶邻域节点是哪些？什么时候停止搜索？
 #### [200. 岛屿的个数](https://leetcode-cn.com/problems/number-of-islands/)
 ```python
-from queue import Queue
+from collections import deque
 
-class Solution(object):
+class Solution:
+
     def numIslands(self, grid):
+
         try:
-            r = 0; m = len(grid); n = len(grid[0])
+            r = 0
+            m = len(grid)
+            n = len(grid[0])
             around = ((0, 1), (1, 0), (0, -1), (-1, 0))
-        except:
+        except BaseException:
             return 0
-        
+
         for i in range(m):
             for j in range(n):
                 if int(grid[i][j]):
                     r += 1
-                    
-                    #---------------------------BFS 开始-----------------------------
+
+                    # ---------------------------BFS 开始------------------------
                     # 把根节点投入队列
-                    q = Queue()
-                    q.put((i, j))
+                    q = deque([])
+                    q.append((i, j))
+                    grid[i][j] = '0'
 
-                    # 开始循环
-                    while not q.empty():
-                        # 取出还未沉没的陆地节点并沉没陆地（防止下次遍历到的时候再算一遍）
-                        x, y = q.get()
-                        
-                        if int(grid[x][y]):
-                            grid[x][y] = '0'
+                    while q:
+                        x, y = q.popleft()
 
-                            # 放入周围的陆地节点
-                            for a, b in around:
-                                a += x; b += y;
-                                if 0 <= a < m and 0 <= b < n and int(grid[a][b]):
-                                    q.put((a, b))
-                    #----------------------------------------------------------------
+                        # 访问了根节点，放入其周围可继续探索的陆地节点
+                        for a, b in around:
+                            a += x
+                            b += y
+                            if 0 <= a < m and 0 <= b < n and int(grid[a][b]):
+                                grid[a][b] = '0'
+                                q.append((a, b))
+                    # ----------------------------------------------------------------
+
         return r
 ```
 - BFS解法在这题很慢但是很常规
 - 算法书中的 BFS 一般都是以树为例子介绍的，那么在本题中如何应用 BFS ？ 根据题意，我们可以把每一个陆地点当作树根，用 BFS 搜索四周的陆地并沉没它，那么这一整块的陆地都被沉没了，下次我们再遇到陆地点的时候就说明发现新大陆了 🙊
 #### [752. 打开转盘锁](https://leetcode-cn.com/problems/open-the-lock/submissions/)
 ```python
-from queue import Queue
+from collections import deque
 
 class Solution:
+
     def openLock(self, deadends: List[str], target: str) -> int:
-        deadends = set(deadends) # in 操作在set中时间复杂度为O(1)
+        deadends = set(deadends)  # in 操作在set中时间复杂度为O(1)
+        begin = set()
+        end = set()
         if '0000' in deadends:
             return -1
         if target == '0000':
             return 0
-        
-        # -------------------------------BFS 开始----------------------------------
-        # 初始化根节点
-        q = Queue()
-        q.put(('0000', 0)) # (当前节点值，转动步数)
-        
-        # 开始循环队列
-        while not q.empty():
-            
+
+        # -------------------------------BFS 开始--------------------------------
+        q = deque([])
+        q.append(('0000', 0))
+
+        while q:
             # 取出一个节点
-            node, step = q.get()
-            
+            node, step = q.popleft()
+            step += 1
+
             # 放入周围节点
             for i in range(4):
                 for add in (1, -1):
-                    cur = node[:i] + str((int(node[i]) + add) % 10) + node[i+1:]
+                    cur = node[:i] + str(
+                        (int(node[i]) + add) % 10) + node[i + 1:]
                     if cur == target:
-                        return step + 1
-                    if not cur in deadends:
-                        q.put((cur, step + 1))
-                        deadends.add(cur) # 避免重复搜索
+                        return step
+                    if cur not in deadends:
+                        q.append((cur, step))
+                        deadends.add(cur)  # 避免重复搜索
         # -------------------------------------------------------------------------
+
         return -1
 ```
 - 为什么这题要用 BFS(广度优先搜索) ？根据题意，我们需要找到最少的解锁步数，这实际上可以认为是在图上搜索最短路径。BFS 总是优先搜索距离根节点近的节点，因此它搜索到的路径就是最短路径
 - 以当前锁上的数字为根，所有能达到的数字为一阶邻域（子节点）进行搜索
 #### [279. 完全平方数](https://leetcode-cn.com/problems/perfect-squares/submissions/)
 ```python
-from queue import Queue
+from collections import deque
 
 class Solution:
     def numSquares(self, n: int) -> int:
@@ -2583,30 +2589,27 @@ class Solution:
             if i**2 <= n:
                 around.append(i**2)
             else:
-                break;
-        
+                break
+
         r = 0
-        seen = set() # 防止重复运算
-        
+        seen = set()
+
         # ----------------BFS 开始----------------------
-        # 初始化根节点
-        q = Queue()
-        q.put((0, r))
-        
-        # 进入队列循环
-        while not q.empty():
+        q = deque([])
+        q.append((n, r))
+
+        while q:
             # 取出一个元素
-            cur, step = q.get()
-            step += 1
-            
+            cur, step = q.popleft()
+
             # 放入周围元素
             for a in around:
-                a += cur
-                if a == n:
-                    return step
-                if a < n and (a, step) not in seen:
-                    seen.add((a, step))
-                    q.put((a, step))
+                a = cur - a
+                if a == 0:
+                    return step + 1
+                if a > 0 and a not in seen:
+                    seen.add((a, step + 1))
+                    q.append((a, step + 1))
         # ----------------------------------------------
         return 0
 ```
@@ -2623,22 +2626,28 @@ class Solution:
 class MinStack:
 
     def __init__(self):
-        """
-        initialize your data structure here.
-        """
-        self.data = [(None, float('inf'))]
+        self.q = []
 
-    def push(self, x: int) -> None:
-        self.data.append((x, min(x, self.data[-1][1])))
+    def push(self, x):
+        curMin = self.getMin()
+        if curMin == None or x < curMin:
+            curMin = x
+        self.q.append((x, curMin))
 
-    def pop(self) -> None:
-        if len(self.data) > 1: self.data.pop()
+    def pop(self):
+        self.q.pop()
 
-    def top(self) -> int:
-        return self.data[-1][0]
+    def top(self):
+        if len(self.q) == 0:
+            return None
+        else:
+            return self.q[-1][0]
 
-    def getMin(self) -> int:
-        return self.data[-1][1]
+    def getMin(self):
+        if len(self.q) == 0:
+            return None
+        else:
+            return self.q[len(self.q) - 1][1]
 
 
 # Your MinStack object will be instantiated and called as such:
@@ -2652,32 +2661,37 @@ class MinStack:
 #### [20. 有效的括号](https://leetcode-cn.com/problems/valid-parentheses/)
 ```python
 class Solution:
+
     def isValid(self, s: str) -> bool:
+        if not s:
+            return True
+
         stack = []
         d = {'(': ')', '[': ']', '{': '}'}
-        
-        for p in s:
-            if p in '{[(':
-                stack.append(p)
+
+        for i in s:
+            if i in '{[(':
+                stack.append(i)
             else:
-                if not stack or d[stack.pop()] != p:
+                if not stack or i != d[stack.pop()]:
                     return False
-        return not stack
+        return True
 ```
 - 此题入栈条件为：元素是左括号，出栈条件为：匹配到右括号
 - 栈中的元素全部为左括号
 #### [739. 每日温度](https://leetcode-cn.com/problems/daily-temperatures/submissions/)
 ```python
-class Solution(object):
-    def dailyTemperatures(self, T):
+class Solution:
+    def dailyTemperatures(self, T: List[int]) -> List[int]:
         stack = []
         r = [0] * len(T)
-        
+
         for i, t in enumerate(T):
             while stack and T[stack[-1]] < t:
                 c = stack.pop()
                 r[c] = i - c
             stack.append(i)
+
         return r
 ```
 - 入栈条件：当前元素比栈顶元素小，出栈条件：遇到比自己大的温度
@@ -2687,18 +2701,21 @@ class Solution(object):
 ```python
 class Solution:
     def evalRPN(self, tokens: List[str]) -> int:
-        # 初始化栈，用栈储存未处理的数字
+        dic = {
+            '+': lambda x, y: x + y,
+            '-': lambda x, y: x - y,
+            '*': lambda x, y: x * y,
+            '/': lambda x, y: int(x / y)
+        }
         stack = []
-        
-        # 遍历元素
-        for t in tokens:
-            if not t in '+-*/': # 规定入栈条件
-                stack.append(int(t))
-                
-            else: # 出栈：从栈顶弹出元素与新的栈顶做运算
+
+        for i in tokens:
+            if i not in '+-*/':
+                stack.append(int(i))
+            else:
                 a = stack.pop()
-                stack[-1] = int(eval(str(stack[-1]) + t + 'a'))
-        
+                stack[-1] = dic[i](stack[-1], a)
+
         return stack[-1]
 ```
 - 使用栈储存所有未处理的数字
@@ -2832,51 +2849,49 @@ class MyQueue:
 
     def __init__(self):
         """
-        Initialize your data structure here.
+        initialize your data structure here.
         """
-        self.stack = []
+        self.inStack, self.outStack = [], []
 
     def push(self, x: int) -> None:
         """
         Push element x to the back of queue.
+        :param x:
+        :return:
         """
-        self.stack.append(x)
+        self.inStack.append(x)
 
     def pop(self) -> int:
         """
         Removes the element from in front of queue and returns that element.
+        :return:
         """
-        temp = []
-        while self.stack:
-            temp.append(self.stack.pop())
-        
-        r = temp.pop()
-        
-        while temp:
-            self.stack.append(temp.pop())
-            
-        return r
+        self.move()
+        return self.outStack.pop()
 
     def peek(self) -> int:
         """
         Get the front element.
+        :return:
         """
-        temp = []
-        while self.stack:
-            temp.append(self.stack.pop())
-        
-        r = temp[-1]
-        
-        while temp:
-            self.stack.append(temp.pop())
-        
-        return r
+        self.move()
+        return self.outStack[-1]
 
     def empty(self) -> bool:
         """
         Returns whether the queue is empty.
+        :return:
         """
-        return not self.stack
+        return (not self.inStack) and (not self.outStack)
+
+    def move(self) -> None:
+        """
+        move element from inStack to outStack when outStack is empty
+        :return:
+        """
+        if not self.outStack:
+            while self.inStack:
+                self.outStack.append(self.inStack.pop())
 
 
 # Your MyQueue object will be instantiated and called as such:
@@ -2889,45 +2904,49 @@ class MyQueue:
 - 使用俩个栈来模拟队列，当需要取第一个元素的时候创建一个临时的栈temp，把栈里面的东西全部抽出来放进temp，完成操作后放回去
 #### [225. 用队列实现栈](https://leetcode-cn.com/problems/implement-stack-using-queues/submissions/)
 ```python
-from queue import Queue
+from collections import deque
 
-class MyStack:
+class Stack:
 
     def __init__(self):
         """
         Initialize your data structure here.
         """
-        self.q = Queue()
+        self.q = deque([])
 
-    def push(self, x: int) -> None:
+    def push(self, x) -> None:
         """
         Push element x onto stack.
+        :param x:
+        :return:
         """
-        self.q.put(x)
+        self.q.append(x)
 
     def pop(self) -> int:
         """
         Removes the element on top of the stack and returns that element.
+        :return:
         """
-        for _ in range(self.q.qsize() - 1):
-            self.q.put(self.q.get())
-        return self.q.get()
+        if self.empty():
+            # 由于deque的rotate方向是朝右，所以用负值！
+            self.q.rotate(1 - len(self.q))
+            return self.q.popleft()
 
     def top(self) -> int:
         """
         Get the top element.
+        :return:
         """
-        for _ in range(self.q.qsize() - 1):
-            self.q.put(self.q.get())
-        r = self.q.get()
-        self.q.put(r)
+        r = self.pop()
+        self.q.append(r)
         return r
-        
+
     def empty(self) -> bool:
         """
         Returns whether the stack is empty.
+        :return:
         """
-        return self.q.empty()
+        return not self.q
 
 
 # Your MyStack object will be instantiated and called as such:
@@ -2961,54 +2980,63 @@ class Solution:
 - 用 stack 记录（[]之前的字母，翻倍次数，翻倍内容）
 #### [733. 图像渲染](https://leetcode-cn.com/problems/flood-fill/)
 ```python
-class Solution:
-    def floodFill(self, image: List[List[int]], sr: int, sc: int, newColor: int) -> List[List[int]]:
-        m, n = map(len, (image, image[0]))
-        around = ((1, 0), (0, 1), (-1, 0), (0, -1))
-        oldColor = image[sr][sc]
-        
-        # 创建栈放入根节点
-        stack = [(sr, sc)]
-        
-        # 进入循环放入邻居
-        while stack:
-            r, c = stack.pop()
-            if oldColor != newColor: # 根剪枝
-                image[r][c] = newColor
+from collections import deque
 
-                for x, y in around:
-                    x, y = x + r, y + c
-                    if 0 <= x < m and 0 <= y < n and image[x][y] == oldColor: # 邻剪枝
-                        image[x][y] = newColor
-                        stack.append((x, y))
+# BFS
+class Solution1:
+
+    def floodFill(self, image: List[List[int]], sr: int, sc: int,
+                  newColor: int) -> List[List[int]]:
+
+        m, n = map(len, (image, image[0]))
+        around = ((1, 0), (0, -1), (-1, 0), (0, 1))
+
+        if image[sr][sc] != newColor:
+            q = deque([(sr, sc)])
+            old = image[sr][sc]
+            image[sr][sc] = newColor
+
+            while q:
+
+                x, y = q.popleft()
+                image[x][y] = newColor
+
+                for a, b in around:
+                    a += x
+                    b += y
+                    if 0 <= a < n and 0 <= b < m and image[a][b] == old:
+                        q.append((a, b))
+
         return image
 ```
 #### [542. 01 矩阵](https://leetcode-cn.com/problems/01-matrix/submissions/)
 ```python
+from collections import deque
+
 class Solution:
+
     def updateMatrix(self, matrix: List[List[int]]) -> List[List[int]]:
-        m, n = len(matrix), len(matrix[0])
-        r = [[0] * n for _ in range(m)]
+        n, m = map(len, (matrix, matrix[0]))
         around = ((0, 1), (1, 0), (0, -1), (-1, 0))
-        
-        for i in range(m):
-            for j in range(n):
+        r = [[0] * m for _ in range(n)]
+
+        for i in range(n):
+            for j in range(m):
                 # -------------------------BFS 开始--------------------------
-                # 放入根节点
-                q = collections.deque([(i, j, 0)])
+                q = deque([(i, j, 0)])
                 seen = {(i, j)}
-                
+
                 # 循环取节点
                 while q:
                     a, b, t = q.popleft()
                     if not matrix[a][b]:
                         r[i][j] = t
                         break
-                    
+
                     # 放入邻节点
                     for x, y in around:
                         x, y = x + a, y + b
-                        if 0 <= x < m and 0 <= y < n and (x, y) not in seen:
+                        if 0 <= x < n and 0 <= y < m and (x, y) not in seen:
                             seen.add((x, y))
                             q.append((x, y, t + 1))
                 # ----------------------------------------------------------
